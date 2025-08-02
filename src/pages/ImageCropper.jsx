@@ -1,37 +1,44 @@
-import React, { useState, useRef } from 'react'
+// src/pages/ImageCropper.jsx import React, { useState, useCallback } from 'react'; import Cropper from 'react-easy-crop'; import getCroppedImg from '../utils/cropImage'; import { Button } from '@/components/ui/button';
 
-const ImageCropper = () => {
-  const [image, setImage] = useState(null)
-  const [cropped, setCropped] = useState(null)
-  const canvasRef = useRef(null)
+export default function ImageCropper() { const [image, setImage] = useState(null); const [crop, setCrop] = useState({ x: 0, y: 0 }); const [zoom, setZoom] = useState(1); const [croppedAreaPixels, setCroppedAreaPixels] = useState(null); const [croppedImage, setCroppedImage] = useState(null);
 
-  const handleCrop = () => {
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-    const img = new Image()
-    img.onload = () => {
-      canvas.width = 200
-      canvas.height = 200
-      ctx.drawImage(img, 50, 50, 200, 200, 0, 0, 200, 200)
-      setCropped(canvas.toDataURL())
-    }
-    img.src = URL.createObjectURL(image)
-  }
+const onCropComplete = useCallback((_, croppedAreaPixels) => { setCroppedAreaPixels(croppedAreaPixels); }, []);
 
-  return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Image Cropper</h2>
-      <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files[0])} />
-      <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={handleCrop}>Crop</button>
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-      {cropped && (
-        <div>
-          <img src={cropped} alt="Cropped" className="mt-4" />
-          <a href={cropped} download="cropped.png" className="text-blue-600 underline block mt-2">Download</a>
-        </div>
-      )}
+const handleFileChange = (e) => { const file = e.target.files[0]; if (file) { setImage(URL.createObjectURL(file)); } };
+
+const showCroppedImage = async () => { try { const croppedImg = await getCroppedImg(image, croppedAreaPixels); setCroppedImage(croppedImg); } catch (e) { console.error(e); } };
+
+return ( <div className="space-y-6"> <h2 className="text-2xl font-bold">Crop Image</h2>
+
+<input type="file" accept="image/*" onChange={handleFileChange} />
+
+  {image && (
+    <div className="relative w-full h-96 bg-gray-200">
+      <Cropper
+        image={image}
+        crop={crop}
+        zoom={zoom}
+        aspect={4 / 3}
+        onCropChange={setCrop}
+        onZoomChange={setZoom}
+        onCropComplete={onCropComplete}
+      />
     </div>
-  )
-}
+  )}
 
-export default ImageCropper
+  {image && (
+    <div className="flex gap-4">
+      <Button onClick={showCroppedImage}>Crop</Button>
+    </div>
+  )}
+
+  {croppedImage && (
+    <div>
+      <h3 className="text-lg font-semibold">Cropped Result:</h3>
+      <img src={croppedImage} alt="Cropped" className="rounded shadow mt-2 max-w-full" />
+    </div>
+  )}
+</div>
+
+); }
+
